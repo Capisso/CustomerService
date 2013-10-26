@@ -1,7 +1,13 @@
 <?php
 namespace Capisso\CustomerService;
 
+use Input;
+use Redirect;
+use Ticket;
+use User;
+use Validator;
 use View;
+use Sentry;
 
 class TicketController extends \BaseController
 {
@@ -13,10 +19,12 @@ class TicketController extends \BaseController
      */
     public function index()
     {
+        $activeTickets = Ticket::all();
+
         $title = 'Ticket Queue';
         $description = 'what kind of subtitle/descriptions should this have';
 
-        return View::make('customer-service::tickets/index', compact('title', 'description'));
+        return View::make('customer-service::tickets/index', compact('activeTickets', 'title', 'description'));
     }
 
     /**
@@ -26,7 +34,17 @@ class TicketController extends \BaseController
      */
     public function create()
     {
-        //
+        $users = Sentry::findAllUsersInGroup(Sentry::findGroupByName('Customers'));
+
+        $customers = array();
+        foreach($users as $user) {
+            $customers[$user->id] = $user->first_name . ' ' . $user->last_name . '(' . $user->username . ')';
+        }
+
+        $title = 'Create Ticket';
+        $description = 'open up a conversation with a customer';
+
+        return View::make('customer-service::tickets/create', compact('customers', 'title', 'description'));
     }
 
     /**
@@ -36,7 +54,35 @@ class TicketController extends \BaseController
      */
     public function store()
     {
-        //
+        $input = Input::all();
+
+        $rules = array(
+            'to' => 'required',
+            'title' => 'required',
+            'priority' => 'required',
+            'body' => 'required',
+            'status' => 'required',
+        );
+
+        $validator = Validator::make($input, $rules);
+        if($validator->fails()) {
+            return Redirect::back()->withInput()->withErrors($validator);
+        }
+
+        $ticket = new Ticket();
+
+        $ticket->title = $input['title'];
+        $ticket->body = $input['body'];
+        $ticket->priority = $input['priority'];
+        $ticket->status = $input['status'];
+        $ticket->customer_id = $input['to'];
+        $ticket->assigned_user_id = null;
+        $ticket->admin_group_id = null;
+
+        $ticket->save();
+
+
+        return Redirect::action('Capisso\\CustomerService\\TicketController@show', array($ticket->id));
     }
 
     /**
@@ -47,7 +93,9 @@ class TicketController extends \BaseController
      */
     public function show($id)
     {
+        $ticket = Ticket::find($id);
 
+        return View::make('customer-service::tickets/show', compact('ticket'));
     }
 
     /**
