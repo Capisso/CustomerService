@@ -1,9 +1,11 @@
 <?php
 namespace Capisso\CustomerService;
 
+use App;
 use Input;
 use Redirect;
 use Ticket;
+use TicketResponse;
 use User;
 use Validator;
 use View;
@@ -56,33 +58,61 @@ class TicketController extends \BaseController
     {
         $input = Input::all();
 
-        $rules = array(
-            'to' => 'required',
-            'title' => 'required',
-            'priority' => 'required',
-            'body' => 'required',
-            'status' => 'required',
-        );
+        if($input['type'] == 'new') {
 
-        $validator = Validator::make($input, $rules);
-        if($validator->fails()) {
-            return Redirect::back()->withInput()->withErrors($validator);
+            $rules = array(
+                'to' => 'required',
+                'title' => 'required',
+                'priority' => 'required',
+                'body' => 'required',
+                'status' => 'required',
+            );
+
+            $validator = Validator::make($input, $rules);
+            if($validator->fails()) {
+                return Redirect::back()->withInput()->withErrors($validator);
+            }
+
+            $ticket = new Ticket();
+
+            $ticket->title = $input['title'];
+            $ticket->body = $input['body'];
+            $ticket->priority = $input['priority'];
+            $ticket->status = $input['status'];
+            $ticket->customer_id = $input['to'];
+            $ticket->assigned_user_id = null;
+            $ticket->admin_group_id = null;
+
+            $ticket->save();
+
+            return Redirect::action('Capisso\\CustomerService\\TicketController@show', array($ticket->id));
+
+        } elseif($input['type'] == 'response') {
+
+            $rules = array(
+                'ticket_id' => 'required',
+                'body' => 'required',
+            );
+
+            $validator = Validator::make($input, $rules);
+            if($validator->fails()) {
+                return Redirect::back()->withInput()->withErrors($validator);
+            }
+
+            $ticket = new TicketResponse();
+
+            $ticket->ticket_id = $input['ticket_id'];
+            $ticket->user_id = Sentry::getUser()->id;
+            $ticket->body = $input['body'];
+
+            $ticket->save();
+
+            return Redirect::action('Capisso\\CustomerService\\TicketController@show', array($ticket->ticket_id));
+
+        } else {
+            return App::abort(404, 'Page not found');
         }
 
-        $ticket = new Ticket();
-
-        $ticket->title = $input['title'];
-        $ticket->body = $input['body'];
-        $ticket->priority = $input['priority'];
-        $ticket->status = $input['status'];
-        $ticket->customer_id = $input['to'];
-        $ticket->assigned_user_id = null;
-        $ticket->admin_group_id = null;
-
-        $ticket->save();
-
-
-        return Redirect::action('Capisso\\CustomerService\\TicketController@show', array($ticket->id));
     }
 
     /**

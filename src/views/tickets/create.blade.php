@@ -119,6 +119,8 @@ Asset::queue('chosen', 'js/chosen.jquery.min.js', 'jquery');
         @endif
 
         {{ Form::open(array('action' => 'Capisso\\CustomerService\\TicketController@store')) }}
+            <input type="hidden" name="type" value="new"/>
+
             <div class="form-group">
                 <div class="row">
                     <div class="col-lg-4">

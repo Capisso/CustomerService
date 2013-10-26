@@ -8,4 +8,8 @@ class TicketResponse extends Eloquent {
         return $this->belongsTo('Ticket');
     }
 
+    public function user() {
+        return $this->belongsTo('User');
+    }
+
 } 
